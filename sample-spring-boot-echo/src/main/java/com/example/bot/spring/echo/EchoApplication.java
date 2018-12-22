@@ -16,8 +16,15 @@
 
 package com.example.bot.spring.echo;
 
+import java.net.URI;
+
+import org.json.JSONObject;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 import com.linecorp.bot.model.event.Event;
 import com.linecorp.bot.model.event.MessageEvent;
@@ -38,11 +45,61 @@ public class EchoApplication {
     public Message handleTextMessageEvent(MessageEvent<TextMessageContent> event) {
         System.out.println("event: " + event);
         final String originalMessageText = event.getMessage().getText();
-        return new TextMessage(originalMessageText);
+        return new TextMessage(searchDictionary(originalMessageText));
     }
 
     @EventMapping
     public void handleDefaultMessageEvent(Event event) {
         System.out.println("event: " + event);
+    }
+
+    public String searchDictionary(String text) {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "https://ja.wikipedia.org/w/api.php?action=query&prop=extracts&rvprop=content&format=json&formatversion=2&redirects&titles=" + text;
+        RequestEntity<?> req = new RequestEntity<>(
+                text, HttpMethod.GET, URI.create(url));
+        ResponseEntity<String> r = restTemplate.exchange(req, String.class);
+        System.out.println(r.getBody());
+        JSONObject obj = new JSONObject(r.getBody());
+        System.out.println(obj);
+        if (obj.getJSONObject("query").getJSONArray("pages").getJSONObject(0).has("missing")) {
+            return "そんなん知らん";
+        }
+        String raw = obj.getJSONObject("query").getJSONArray("pages").getJSONObject(0).getString("extract");
+        String summary = raw.split("<h2>")[0];
+        summary = summary.replace("<p>","");
+        summary = summary.replace("<b>","");
+        summary = summary.replace("<span>","");
+        summary = summary.replace("<span lang=\"en\">","");
+        summary = summary.replace("</span>","");
+        summary = summary.replace("</p>","");
+        summary = summary.replace("</b>","");
+        summary = summary.replace("<li>"," ");
+        summary = summary.replace("<ul>","");
+        summary = summary.replace("</li>"," ");
+        summary = summary.replace("</ul>","");
+        summary = summary.replace("<br>","");
+        summary = summary.replace("<span lang=\"th\">","");
+        summary = summary.replace("\n","");
+        summary = summary.replaceAll("<.>","");
+        summary = summary.replaceAll("<..>","");
+        summary = summary.replaceAll("<...>","");
+        summary = summary.replaceAll("<....>","");
+        summary = summary.replaceAll("<.....>","");
+        summary = summary.replaceAll("<......>","");
+        summary = summary.replaceAll("<.......>","");
+        summary = summary.replaceAll("<........>","");
+        summary = summary.replaceAll("<.........>","");
+        summary = summary.replaceAll("<..........>","");
+        summary = summary.replaceAll("<...........>","");
+        summary = summary.replaceAll("<............>","");
+        summary = summary.replaceAll("<.............>","");
+        summary = summary.replaceAll("<..............>","");
+        summary = summary.replaceAll("<...............>","");
+        summary = summary.replaceAll("<................>","");
+        summary = summary.replaceAll("<.................>","");
+        summary = summary.replaceAll("<..................>","");
+        System.out.println(summary);
+        return summary;
     }
 }
